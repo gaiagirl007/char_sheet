@@ -351,7 +351,7 @@ def is_valid_name(name):
     Returns a bool: True if name is a non-empty str that does not contain any
     of the special ascii characters in INVALID
     """
-    if type(name) != str or name != '':
+    if type(name) != str or name == '':
         return False
 
     for i in INVALID:
