@@ -21,6 +21,8 @@ ALL_PROF = {
 PROF = [2, 2, 2, 2, 3]
 STAT_POS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHR']
 
+################################################################################
+
 class Character(object):
     """A class called Character. Stores the overarching data that makes a character
 
@@ -29,7 +31,7 @@ class Character(object):
         _stats: the ability scores of the character [dict of int, keys in STAT_POS]
         _lvl: the level of the character [int > 0]
         _race: the race of the character [instance of Race]
-        _class: the class of the character [instance of Class]
+        _chclass: the class of the character [instance of ChClass]
         _background: the background of the character
         _mods: the modifiers calculated from _stats [dict of int, keys in STAT_POS]
         _profs: the proficiencies a character has [dict of int, keys in ALL_PROF]
@@ -46,25 +48,27 @@ class Character(object):
         stats: dictionary of ints 6..20 with len 6
         lvl: int > 0
         race: object of type Race
-        char_class: object of type Class (or inheriting from it)
+        char_class: object of type ChClass (or inheriting from it)
         background: object of type Background
         filename: None
+        path: None
 
         If creating a file:
         filename: non-empty str
+        path: None or non-empty str
         """
 
         if filename == None:
             self._setstats(name, stats, lvl, race, char_class, background)
 
         else:
-            self._newfile(filename)
+            self._newfile(filename, path)
 
 
     def __str__(self):
         """Returns a nice little summary of what makes a Character instance"""
         return "\n" + self._name + "\nLevel " + str(self._lvl) + " " +\
-        str(self._race) + " " + str(self._class) + "\n" + str(self._stats) +\
+        str(self._race) + " " + str(self._chclass) + "\n" + str(self._stats) +\
         "\n" + str(self._profs) + "\nSpellcasting: " + str(self._casting) + "\n"
 
 
@@ -75,23 +79,22 @@ class Character(object):
         stats: dictionary of ints 6..20 with len 6
         lvl: int > 0
         race: object of type Race
-        char_class: object of type Class (or inheriting from it)
+        char_class: object of type ChClass (or inheriting from it)
         background: object of type Background
-        filename: None
         """
         #check preconditions
         assert is_valid_name(name)
         assert type(stats) == dict and is_valid_stats(list(stats.values()), 20)
         assert type(lvl) == int and lvl > 0
         assert isinstance(race, Race)
-        assert isinstance(char_class, Class)
+        assert isinstance(char_class, ChClass)
 
         self._name = name
         self._stats = stats
         self._lvl = lvl
 
         self._race = race
-        self._class = char_class
+        self._chclass = char_class
         self._background = background
 
         self._mods = {}
@@ -101,7 +104,7 @@ class Character(object):
         self._makeprofs()
 
         self._casting = None
-        casting = self._class.getSpells()
+        casting = self._chclass.getSpells()
         if casting != None:
             self._casting = 8 + self._mods[casting] + PROF[self._lvl - 1]
 
@@ -109,12 +112,12 @@ class Character(object):
     def _makeprofs(self):
         """Sets proficiencies; helper function for __init__"""
         self._profs = {}
-        if self._class.getProfs() != None:
+        if self._chclass.getProfs() != None:
             num = 2
-            if self._class == rogue:
+            if self._chclass == rogue:
                 num += 2
 
-            class_profs = random.sample(self._class.getProfs(), num)
+            class_profs = random.sample(self._chclass.getProfs(), num)
             #back_profs = ...
             for j in class_profs:
                 self._profs[j] = self._mods[ALL_PROF[j]] + PROF[self._lvl - 1]
@@ -142,16 +145,16 @@ class Character(object):
         """Helper function for _newfile. Takes the relevant attributes of an
         instance of a character and converts them to a dictionary for the purposes
         of saving with json."""
-        dict = {}
+        limbo = {}
 
-        dict["name"] = self._name
-        dict["stats"] = self._stats
-        dict["lvl"] = self._lvl
-        dict["race"] = self._race
-        dict["class"] = self._class
-        dict["background"] = self._background
+        limbo["name"] = self._name
+        limbo["stats"] = self._stats
+        limbo["lvl"] = self._lvl
+        limbo["race"] = str(self._race)
+        limbo["char_class"] = str(self._chclass)
+        limbo["background"] = self._background
 
-        return dict
+        return limbo
 
 
 ### Update function maybe?
@@ -159,8 +162,10 @@ class Character(object):
         """Increments _lvl by 1"""
         self._lvl += 1
 
-        #and then access the _class object to update other attributes
+        #and then access the _chclass object to update other attributes
 
+
+################################################################################
 
 class Race(object):
     """A class called Race. Stores all of the things that make a race instance
@@ -201,8 +206,10 @@ class Race(object):
         return self._statbonus
 
 
-class Class(object):
-    """A class called Class. Used to manage the overarching functions that are
+################################################################################
+
+class ChClass(object):
+    """A class called ChClass. Used to manage the overarching functions that are
     the same for all classes.
 
     Instance Attributes:
@@ -212,7 +219,7 @@ class Class(object):
         _profs: what proficiencies "come with" the class
     """
     def __init__(self, name, profs = None, spellstat = None, can_cast = False):
-        """Initializes a Class of type name.
+        """Initializes a ChClass of type name.
 
         name: non-empty str
         profs: None or list of str in ALL_PROF keys
@@ -232,17 +239,17 @@ class Class(object):
 
 
     def __str__(self):
-        """Returns the stringified version of a Class instance"""
+        """Returns the stringified version of a ChClass instance"""
         return self._name
 
 
     def getProfs(self):
-        """Returns the list of proficiencies associated with a Class instance"""
+        """Returns the list of proficiencies associated with a ChClass instance"""
         return self._profs
 
 
     def getSpells(self):
-        """Returns the ability score the Class instance uses for spellcasting if
+        """Returns the ability score the ChClass instance uses for spellcasting if
         the class can spellcast. Otherwise returns None."""
         if self._spells == True:
             return self.getStat()
@@ -254,6 +261,8 @@ class Class(object):
     def getStat(self):
         return self._spellstat
 
+
+########################### Generator Function #################################
 
 def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     raw_stats = None, race = None, char_class = None):
@@ -269,7 +278,7 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     helpful_plz: bool
     raw_stats: None or a list of int 3..18 of len 6
     race: object of type Race or None
-    char_class: object of type Class or None
+    char_class: object of type ChClass or None
     """
     #checks preconditions
     assert is_valid_name(name)
@@ -277,16 +286,16 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     assert type(helpful_plz) == bool
     assert raw_stats == None or is_valid_stats(raw_stats)
     assert race == None or isinstance(race, Race)
-    assert char_class == None or isinstance(char_class, Class)
+    assert char_class == None or isinstance(char_class, ChClass)
 
     #creates an key-only dictionary for putting final stats in
     stats = {'STR': 0, 'DEX': 0, 'CON': 0, 'INT': 0, 'WIS': 0, 'CHR': 0}
 
     if randomize == True or race == None:
-        race = random.sample(races, 1)[0]
+        race = random.sample(list(races.values()), 1)[0]
 
     if randomize == True or char_class == None:
-        char_class = random.sample(char_classes, 1)[0]
+        char_class = random.sample(list(char_classes.values()), 1)[0]
 
     if randomize == True or raw_stats == None:
         raw_stats = my_dice.roll_stats()
@@ -309,6 +318,7 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
 
 
 ################### Helper Functions for Preconditions #########################
+
 def is_valid_stats(stats, max = 18):
     """
     Returns a bool: True if stats is a list of length 6 only containing ints
@@ -369,20 +379,20 @@ elf = Race('Elf', {'DEX': 2}, True)
 halfling = Race('Halfling', {'DEX': 2})
 human = Race('Human', {'STR': 1, 'DEX': 1, 'CON': 1, 'INT': 1, 'WIS': 1, 'CHR': 1})
 
-races = [dwarf, elf, halfling, human]
+races = {"Dwarf": dwarf, "Elf": elf, 'Halfling': halfling, 'Human': human}
 
 #creates 4 classes (for now)
-cleric = Class('Cleric', ['History', 'Insight', 'Medicine', 'Persuasion',\
+cleric = ChClass('Cleric', ['History', 'Insight', 'Medicine', 'Persuasion',\
     'Religion'], 'WIS', True)
 
-fighter = Class('Fighter', ['Acrobatics', 'Animal Handling', 'Athletics',\
+fighter = ChClass('Fighter', ['Acrobatics', 'Animal Handling', 'Athletics',\
     'History', 'Insight', 'Intimidation', 'Perception', 'Survival'], 'STR')
 
-rogue = Class('Rogue', ['Acrobatics', 'Athletics', 'Deception', 'Insight',\
+rogue = ChClass('Rogue', ['Acrobatics', 'Athletics', 'Deception', 'Insight',\
     'Intimidation', 'Investigation', 'Perception', 'Performance', 'Persuasion',\
     'Sleight of Hand', 'Stealth'], 'DEX')
 
-wizard = Class('Wizard', ['Arcana', 'History', 'Insight', 'Investigation',\
+wizard = ChClass('Wizard', ['Arcana', 'History', 'Insight', 'Investigation',\
     'Medicine', 'Religion'], 'INT', True)
 
-char_classes = [cleric, fighter, rogue, wizard]
+char_classes = {'Cleric': cleric, 'Fighter': fighter, 'Rouge': rogue, 'Wizard': wizard}
