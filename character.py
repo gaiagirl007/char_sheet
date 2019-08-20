@@ -7,6 +7,7 @@ currently built on the Dungeons & Dragons 5E free PDF rulebook.
 import random
 import my_dice
 import json
+from os import listdir
 
 INVALID = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
 
@@ -62,7 +63,7 @@ class Character(object):
             self._setstats(name, stats, lvl, race, char_class, background)
 
         else:
-            self._newfile(filename, path)
+            self.saveme(filename, path)
 
 
     def __str__(self):
@@ -110,7 +111,7 @@ class Character(object):
 
 
     def _makeprofs(self):
-        """Sets proficiencies; helper function for __init__"""
+        """Sets proficiencies; helper function for _setstats"""
         self._profs = {}
         if self._chclass.getProfs() != None:
             num = 2
@@ -123,28 +124,26 @@ class Character(object):
                 self._profs[j] = self._mods[ALL_PROF[j]] + PROF[self._lvl - 1]
 
 
-    def _newfile(self, filename, path):
-        """Creates a new file named filename for saving character data.
+    def saveme(self, filename, path = 'savedata'):
+        """Creates a new file named filename if filename does not exist; saves
+        character data in ./path/filename.
 
         filename: non-empty str
-        path: None or non-empty str
+        path: non-empty str that is a valid dir in char_sheet
         """
         assert type(filename) == str and filename != ''
-        assert path == None or (type(path) == str and path != '')
+        assert type(path) == str and path != '' and path in listdir()
 
         savedata = self._dictme()
 
-        if path == None:
-            path = 'savedata'
-
-        with open('./' + path + '/' + filename, 'w') as file:
+        with open(path + '/' + filename, 'w') as file:
             json.dump(savedata, file)
 
 
     def _dictme(self):
-        """Helper function for _newfile. Takes the relevant attributes of an
-        instance of a character and converts them to a dictionary for the purposes
-        of saving with json."""
+        """Helper function for saveme. Takes the relevant attributes of an
+        instance of a character and converts them to a dictionary where they
+        float in limbo until someone saves them to a file using json."""
         limbo = {}
 
         limbo["name"] = self._name
@@ -262,7 +261,7 @@ class ChClass(object):
         return self._spellstat
 
 
-########################### Generator Function #################################
+################ Generator Function and Other Related Randos ###################
 
 def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     raw_stats = None, race = None, char_class = None):
@@ -285,8 +284,11 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     assert type(randomize) == bool
     assert type(helpful_plz) == bool
     assert raw_stats == None or is_valid_stats(raw_stats)
+
     assert race == None or isinstance(race, Race)
+    #EXCEPTION: custom race -> give hole
     assert char_class == None or isinstance(char_class, ChClass)
+    #EXCEPTION: custom class -> give hole
 
     #creates an key-only dictionary for putting final stats in
     stats = {'STR': 0, 'DEX': 0, 'CON': 0, 'INT': 0, 'WIS': 0, 'CHR': 0}
@@ -315,6 +317,25 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
         stats[j] += race_bonus[j]
 
     return Character(name, stats, 1, race, char_class)
+
+
+def load_char(filename, path = 'savedata'):
+    """Reads the given file in the given folder (path) and returns a character
+    based on the given information in the json dictionary. If path is None, the
+    default folder is savedata.
+
+    filename: str, valid file in given path (dir)
+    path: str, valid dir in pwd
+    """
+    assert type(path) == str and path in listdir()
+    assert type(filename) == str and filename in listdir(path)
+
+    with open(path + '/' + filename, 'r') as file:
+        savedata = json.load(file)
+
+    return Character(savedata['name'], savedata['stats'], savedata['lvl'],\
+        races[savedata['race']], char_classes[savedata['char_class']],\
+        savedata['background'])
 
 
 ################### Helper Functions for Preconditions #########################
@@ -369,6 +390,21 @@ def is_valid_name(name):
             return False
 
     return True
+
+
+def everything_good(char):
+    """Data scrubber helper function holding place thingymabobber whatchamacallit.
+    Currently super monarchical and bossy, just assertions. EEEEDDDDDIIIIITTTTTT
+
+    char: instance of Character
+    """
+    assert isinstance(char, Character)
+
+    assert is_valid_name(char._name)
+    assert is_valid_stats(char._stats)
+    assert type(char._lvl) == int and char._lvl <= 20 and char._lvl > 0
+    assert str(char._race) in races
+    assert str(char._chclass) in char_classes
 
 
 ####################### End Helper Functions ###################################
