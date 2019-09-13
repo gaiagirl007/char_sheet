@@ -40,11 +40,11 @@ class Character(object):
     """
 
     def __init__(self, name = None, stats = None, lvl = None, race = None,\
-        char_class = None, background = None, filename = None, path = None):
+        char_class = None, background = None, filename = None, path = 'savedata'):
         """Initializes a Character with a name, level (lvl), race, class, and
         background, OR creates a file where the character data will be saved.
 
-        If initializing a character:
+        If initializing a new character:
         name: non-empty str that does not contain the values in INVALID
         stats: dictionary of ints 6..20 with len 6
         lvl: int > 0
@@ -54,7 +54,7 @@ class Character(object):
         filename: None
         path: None
 
-        If creating a file:
+        If initializing from a file:
         filename: non-empty str
         path: None or non-empty str
         """
@@ -63,14 +63,16 @@ class Character(object):
             self._setstats(name, stats, lvl, race, char_class, background)
 
         else:
-            self.saveme(filename, path)
+            saved = load_char(filename, path)
+            self._setstats(saved['name'], saved['stats'], saved['lvl'], saved['race'],\
+                saved['char_class'], saved['background'])
 
 
     def __str__(self):
         """Returns a nice little summary of what makes a Character instance"""
         return "\n" + self._name + "\nLevel " + str(self._lvl) + " " +\
-        str(self._race) + " " + str(self._chclass) + "\n" + str(self._stats) +\
-        "\n" + str(self._profs) + "\nSpellcasting: " + str(self._casting) + "\n"
+            str(self._race) + " " + str(self._chclass) + "\n" + str(self._stats) +\
+            "\n" + str(self._profs) + "\nSpellcasting: " + str(self._casting) + "\n"
 
 
     def _setstats(self, name, stats, lvl, race, char_class, background):
@@ -331,11 +333,9 @@ def load_char(filename, path = 'savedata'):
     assert type(filename) == str and filename in listdir(path)
 
     with open(path + '/' + filename, 'r') as file:
-        savedata = json.load(file)
+        saved = json.load(file)
 
-    return Character(savedata['name'], savedata['stats'], savedata['lvl'],\
-        races[savedata['race']], char_classes[savedata['char_class']],\
-        savedata['background'])
+    return saved
 
 
 ################### Helper Functions for Preconditions #########################
