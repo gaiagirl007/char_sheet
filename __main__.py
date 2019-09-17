@@ -6,81 +6,156 @@ import character
 import json
 from os import listdir
 
-file = []
+def new_or_load(slist):
+    """Asks the user if they want to load a previous character or create a
+    new one. If the user wants to load a previous character, it calls helper
+    function loadthis which determines which character the user wants to load.
+
+    slist: list of str"""
+    assert is_string_list(slist)
+
+    while(True):
+        usersays = input('Enter 1 to make a new character. Enter 2 to load' +\
+        'a character.')
+
+        if usersays != '1' or usersays != '2':
+            print('Invalid input')
+        else:
+            break
+
+    if usersays == '1':
+        print('loading new character')
+        return new_route()
+
+    elif usersays == '2':
+        lprompt = 'Enter the number of the character you would like to load.'
+        loadfile = slist[pick_number(lprompt, slist)]
+        return character.Character(loadfile)
+
+
+def new_route():
+    """Walks the user through the creation of a new character."""
+
+    name = input('Enter character name: ')
+
+    print('Generate a character from the depths of the deepest, darkest entropy? y/n')
+    while True:
+        answer = str.lower(input())
+        if answer in ['y', 'yes']:
+            print('Summoning the daemons of entropy...')
+            return character.new_char(name, True, True)
+        elif answer in ['n', 'no']:
+            print('Manual input it is...')
+            break
+        else:
+            print('Please enter a valid answer')
+
+    #select stats
+    stats = choose_stats()
+
+    #select a race
+    rprompt = 'Enter the number of the race you want to select'
+    races = []
+    for i in character.races:
+        races.append(i)
+
+    race = races[pick_number(rprompt, races)]
+
+    #select a character class
+    cprompt = 'Enter the number of the character class you want to select'
+    chclasses = []
+    for j in character.char_classes:
+        chclasses.append(j)
+
+    chclass = chclasses[pick_number(cprompt, chclasses)]
+
+    print('Constructing to order...')
+    return character.new_char(name, False, False, stats, character.races[race],\
+        character.char_classes[chclass])
+
+
+def choose_stats():
+    """Walks the user through entering their ability scores. Returns a list of stats"""
+
+    print('Enter your basic stats, without any bonuses')
+    stats = []
+    for i in character.STAT_POS:
+        print(i + ': ')
+        while True:
+            try:
+                num = int(input())
+            except ValueError:
+                print('Please enter a valid integer between 3 and 18')
+
+            if num <= 18 and num >= 3:
+                break
+            else:
+                print('Please enter a valid integer between 3 and 18')
+
+        stats.append(num)
+
+    return stats
+
+
+############################### Helper functions ###############################
+def pick_number(prompt, list):
+    """Prompts the user with prompt, then prints a list of options which the
+    user must pick a number from. If the user enters an invalid response,
+    the function will inform them and and wait until they enter a valid
+    response. Returns the index of the user's response.
+
+    prompt: str
+    list: list of str"""
+    assert type(prompt) == str
+    assert is_string_list(list)
+
+    print(prompt)
+
+    for i in list:
+        print(str(list.index(i)) + ') ' + i)
+
+    while(True):
+        try:
+            usersays = int(input())
+        except ValueError:
+            print('Please enter a valid number')
+
+        if usersays < 0 or usersays >= len(list):
+            print('Please enter a valid number')
+        else:
+            break
+
+    return usersays
+
+
+def is_string_list(val):
+    """Determines whether a given value is a list of strings
+
+    val: any"""
+    if type(val) != list:
+        return False
+
+    for i in val:
+        if type(i) != str:
+            return False
+
+    return True
+
+
+##################################### Main #####################################
 
 if __name__ == '__main__':
 
-    saves = listdir('savedata')
+    saves = listdir('char_sheet/savedata')
 
     #checks to see if a saved character exists and if so, if the user want to load
     #that character or make a new one
     #LATER GOING TO BE GUI
     if saves == []:
         print('loading new character')
+        mychar = new_route()
 
     else:
         mychar = new_or_load(saves)
 
-
-    def new_or_load(slist):
-        """Asks the user if they want to load a previous character or create a
-        new one. If the user wants to load a previous character, it calls helper
-        function loadthis which determines which character the user wants to load."""
-        while(True):
-            usersays = input('Enter 1 to make a new character. Enter 2 to load' +\
-            'a character.')
-
-            if usersays != '1' or usersays != '2':
-                print('Invalid input')
-            else:
-                break
-
-        if usersays == '1':
-            print('loading new character')
-
-        elif usersays == '2':
-            loadfile = slist[loadthis(slist)]
-            return character.Character(loadfile)
-
-
-    def loadthis(slist):
-        """Determines the character which will be loaded."""
-        print('Enter the number of the character you would like to load.')
-
-        for i in slist:
-            print(str(slist.index(i)) + ')' + str(i))
-
-        while(True):
-            try:
-                usersays = int(input())
-            except ValueError:
-                print('Please enter a valid number')
-
-            if usersays < 0 or usersays >= len(saves):
-                print('Please enter a valid number')
-            else:
-                break
-
-        return usersays
-
-
-    def new_route():
-        """"""
-        name = input('Enter character name')
-        answer = input('Generate a character from the depths of the deepest,\
-            darkest entropy? y/n')
-
-        #In Progress, the below section will not do anything remotely good and is currently a mess
-        while True:
-            try:
-                answer = str.lower(answer)
-
-
-        if answer == 'y':
-            return character.new_char(name, True, True)
-
-        elif answer == 'n':
-            print()
-
-        else:
-            print('Please enter a valid answer, y or n')
+    print(str(mychar))
