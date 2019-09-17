@@ -138,7 +138,7 @@ class Character(object):
 
         savedata = self._dictme()
 
-        with open(path + '/' + filename, 'w') as file:
+        with open('char_sheet/' + path + '/' + filename, 'w') as file:
             json.dump(savedata, file)
 
 
@@ -332,7 +332,7 @@ def load_char(filename, path = 'savedata'):
     assert type(path) == str and path in listdir()
     assert type(filename) == str and filename in listdir(path)
 
-    with open(path + '/' + filename, 'r') as file:
+    with open('char_sheet/' + path + '/' + filename, 'r') as file:
         saved = json.load(file)
 
     return saved
