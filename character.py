@@ -7,9 +7,9 @@ currently built on the Dungeons & Dragons 5E free PDF rulebook.
 import random
 import my_dice
 import json
-from os import listdir
+from os import listdir, getcwd
 
-INVALID = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
+INVALID = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.json']
 
 ALL_PROF = {
     'Acrobatics': 'DEX', 'Animal Handling': 'WIS', 'Arcana': 'INT', 'Athletics': 'STR',
@@ -40,7 +40,7 @@ class Character(object):
     """
 
     def __init__(self, name = None, stats = None, lvl = None, race = None,\
-        char_class = None, background = None, filename = None, path = 'savedata'):
+        char_class = None, background = None, filename = None, path = None):
         """Initializes a Character with a name, level (lvl), race, class, and
         background, OR creates a file where the character data will be saved.
 
@@ -126,19 +126,18 @@ class Character(object):
                 self._profs[j] = self._mods[ALL_PROF[j]] + PROF[self._lvl - 1]
 
 
-    def saveme(self, filename, path = 'savedata'):
+    def saveme(self, path = 'char_sheet/savedata'):
         """Creates a new file named filename if filename does not exist; saves
         character data in ./path/filename.
 
-        filename: non-empty str
         path: non-empty str that is a valid dir in char_sheet
         """
-        assert type(filename) == str and filename != ''
-        assert type(path) == str and path != '' and path in listdir()
+        assert is_valid_path(path)
 
+        filename = self._name + '.json'
         savedata = self._dictme()
 
-        with open('char_sheet/' + path + '/' + filename, 'w') as file:
+        with open(path + '/' + filename, 'w') as file:
             json.dump(savedata, file)
 
 
@@ -321,7 +320,7 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     return Character(name, stats, 1, race, char_class)
 
 
-def load_char(filename, path = 'savedata'):
+def load_char(filename, path = 'char_sheet/savedata'):
     """Reads the given file in the given folder (path) and returns a character
     based on the given information in the json dictionary. If path is None, the
     default folder is savedata.
@@ -329,10 +328,10 @@ def load_char(filename, path = 'savedata'):
     filename: str, valid file in given path (dir)
     path: str, valid dir in pwd
     """
-    assert type(path) == str and path in listdir()
+    assert is_valid_path(path)
     assert type(filename) == str and filename in listdir(path)
 
-    with open('char_sheet/' + path + '/' + filename, 'r') as file:
+    with open(path + '/' + filename, 'r') as file:
         saved = json.load(file)
 
     return saved
@@ -392,6 +391,19 @@ def is_valid_name(name):
     return True
 
 
+def is_valid_path(path):
+    """"""
+    if type(path) != str:
+        return False
+
+    if 'char_sheet' in getcwd() and path in listdir():
+        return True
+    elif path in listdir('char_sheet'):
+        return True
+    else:
+        return False
+
+
 def everything_good(char):
     """Data scrubber helper function holding place thingymabobber whatchamacallit.
     Currently super monarchical and bossy, just assertions. EEEEDDDDDIIIIITTTTTT
@@ -432,3 +444,4 @@ wizard = ChClass('Wizard', ['Arcana', 'History', 'Insight', 'Investigation',\
     'Medicine', 'Religion'], 'INT', True)
 
 char_classes = {'Cleric': cleric, 'Fighter': fighter, 'Rouge': rogue, 'Wizard': wizard}
+
