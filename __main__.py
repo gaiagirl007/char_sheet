@@ -14,6 +14,11 @@ def new_or_load(slist):
     slist: list of str"""
     assert is_string_list(slist)
 
+    nlist = []
+    for file in slist:
+        end = file.find('.json')
+        nlist.append(file[:end])
+
     while(True):
         usersays = input('Enter 1 to make a new character. Enter 2 to load' +\
         'a character.')
@@ -29,14 +34,20 @@ def new_or_load(slist):
 
     elif usersays == '2':
         lprompt = 'Enter the number of the character you would like to load.'
-        loadfile = slist[pick_number(lprompt, slist)]
+        loadfile = slist[pick_number(lprompt, nlist)]
         return character.Character(loadfile)
 
 
 def new_route():
     """Walks the user through the creation of a new character."""
 
-    name = input('Enter character name: ')
+    print('Enter character name: ')
+    while True:
+        name = input()
+        if character.is_valid_name(name):
+            break
+        else:
+            print("Please enter a name that does not contain " + str(character.INVALID))
 
     print('Generate a character from the depths of the deepest, darkest entropy? y/n')
     while True:
