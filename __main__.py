@@ -4,7 +4,7 @@ Hopefully where the magic happens.
 
 import character
 import json
-from os import listdir
+from os import listdir, getcwd
 
 def new_or_load(slist):
     """Asks the user if they want to load a previous character or create a
@@ -35,7 +35,7 @@ def new_or_load(slist):
     elif usersays == '2':
         lprompt = 'Enter the number of the character you would like to load.'
         loadfile = slist[pick_number(lprompt, nlist)]
-        return character.Character(loadfile)
+        return character.Character(filename = loadfile)
 
 
 def new_route():
@@ -63,22 +63,12 @@ def new_route():
 
     #select stats
     stats = choose_stats()
-
     #select a race
-    rprompt = 'Enter the number of the race you want to select'
-    races = []
-    for i in character.races:
-        races.append(i)
-
-    race = races[pick_number(rprompt, races)]
-
+    race = select_from_options('race', character.races)
     #select a character class
-    cprompt = 'Enter the number of the character class you want to select'
-    chclasses = []
-    for j in character.char_classes:
-        chclasses.append(j)
-
-    chclass = chclasses[pick_number(cprompt, chclasses)]
+    chclass = select_from_options('character class', character.char_classes)
+    #select a background
+    background = select_from_options('background', character.backgrounds)
 
     print('Constructing to order...')
     return character.new_char(name, False, False, stats, character.races[race],\
@@ -109,6 +99,25 @@ def choose_stats():
 
 
 ############################### Helper functions ###############################
+def select_from_options(name, from_class):
+    """Guides the user through selecting an option from a list of instances.
+    Prompts the user to select a <insert name> from the list of numbers. Returns
+    the selected option.
+
+    name: str
+    from_class: dict in [character.char_classes, character.races, character.backgrounds]
+    """
+    assert type(name) == str
+    assert from_class in [character.char_classes, character.races, character.backgrounds]
+
+    prompt = 'Enter the number of the ' + name + ' you want to select'
+    list = []
+    for i in from_class:
+        list.append(i)
+
+    return list[pick_number(prompt, list)]
+
+
 def pick_number(prompt, list):
     """Prompts the user with prompt, then prints a list of options which the
     user must pick a number from. If the user enters an invalid response,
