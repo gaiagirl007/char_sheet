@@ -40,7 +40,7 @@ class Character(object):
     """
 
     def __init__(self, name = None, stats = None, lvl = None, race = None,\
-        char_class = None, background = None, filename = None, path = None):
+        char_class = None, background = None, profs = None, filename = None, path = None):
         """Initializes a Character with a name, level (lvl), race, class, and
         background, OR creates a file where the character data will be saved.
 
@@ -60,22 +60,23 @@ class Character(object):
         """
 
         if filename == None:
-            self._setstats(name, stats, lvl, race, char_class, background)
+            self._setstats(name, stats, lvl, race, char_class, background, profs)
 
         else:
             saved = load_char(filename, path)
             self._setstats(saved['name'], saved['stats'], saved['lvl'], saved['race'],\
-                saved['char_class'], saved['background'])
+                saved['char_class'], saved['background'], saved['profs'])
 
 
     def __str__(self):
         """Returns a nice little summary of what makes a Character instance"""
         return "\n" + self._name + "\nLevel " + str(self._lvl) + " " +\
-            str(self._race) + " " + str(self._chclass) + "\n" + str(self._stats) +\
-            "\n" + str(self._profs) + "\nSpellcasting: " + str(self._casting) + "\n"
+            str(self._race) + " " + str(self._chclass) + ", " + str(self._background) +\
+            "\n" + str(self._stats) +"\n" + str(self._profs) + "\nSpellcasting: " +\
+            str(self._casting) + "\n"
 
 
-    def _setstats(self, name, stats, lvl, race, char_class, background):
+    def _setstats(self, name, stats, lvl, race, char_class, background, profs):
         """Initializes the basic character info.
 
         name: non-empty str that does not contain the values in INVALID
@@ -84,6 +85,7 @@ class Character(object):
         race: object of type Race
         char_class: object of type ChClass (or inheriting from it)
         background: object of type Background
+        profs: list of str in ALL_PROF
         """
         #check preconditions
         assert is_valid_name(name)
@@ -91,6 +93,8 @@ class Character(object):
         assert type(lvl) == int and lvl > 0
         assert isinstance(race, Race)
         assert isinstance(char_class, ChClass)
+        assert isinstance(background, Background)
+        assert is_valid_profs(profs)
 
         self._name = name
         self._stats = stats
@@ -104,26 +108,14 @@ class Character(object):
         for i in self._stats:
             self._mods[i] = (self._stats[i] - 10) // 2
 
-        self._makeprofs()
+        self._profs = {}
+        for i in profs:
+            self._profs[i] = self._mods[ALL_PROF[i]] + PROF[self._lvl - 1]
 
         self._casting = None
         casting = self._chclass.getSpells()
         if casting != None:
             self._casting = 8 + self._mods[casting] + PROF[self._lvl - 1]
-
-
-    def _makeprofs(self):
-        """Sets proficiencies; helper function for _setstats"""
-        self._profs = {}
-        if self._chclass.getProfs() != None:
-            num = 2
-            if self._chclass == rogue:
-                num += 2
-
-            class_profs = random.sample(self._chclass.getProfs(), num)
-            #back_profs = ...
-            for j in class_profs:
-                self._profs[j] = self._mods[ALL_PROF[j]] + PROF[self._lvl - 1]
 
 
     def saveme(self, path = 'char_sheet/savedata'):
@@ -136,6 +128,7 @@ class Character(object):
 
         filename = self._name + '.json'
         savedata = self._dictme()
+        print(str(savedata))
 
         with open(path + '/' + filename, 'w') as file:
             json.dump(savedata, file)
@@ -145,16 +138,20 @@ class Character(object):
         """Helper function for saveme. Takes the relevant attributes of an
         instance of a character and converts them to a dictionary where they
         float in limbo until someone saves them to a file using json."""
-        limbo = {}
 
-        limbo["name"] = self._name
-        limbo["stats"] = self._stats
-        limbo["lvl"] = self._lvl
-        limbo["race"] = str(self._race)
-        limbo["char_class"] = str(self._chclass)
-        limbo["background"] = self._background
+        return {"name": self._name,
+        "stats": self._stats,
+        "lvl": self._lvl,
+        "race": str(self._race),
+        "char_class": str(self._chclass),
+        "background": self._background,
+        "profs": list(self._profs.keys())
+        }
 
-        return limbo
+
+    def update(self):
+        """"""
+
 
 
 ### Update function maybe?
@@ -262,10 +259,42 @@ class ChClass(object):
         return self._spellstat
 
 
+################################################################################
+
+class Background(object):
+    """A class called Background. Used to manage the possible backgrounds
+
+    Instance Attributes:
+        _name: the name of the background
+        _profs: what proficiencies "come with" the background
+    """
+    def __init__(self, name, profs):
+        """Initializes a Background of type name.
+
+        name: non None str
+        profs: non None list of str in ALL_PROF
+        """
+        assert type(name) == str and name != ''
+        assert profs == None or is_valid_profs(profs)
+
+        self._name = name
+        self._profs = profs
+
+
+    def __str__(self):
+        """Returns the stringified version of a Background instance"""
+        return self._name
+
+
+    def getProfs(self):
+        """Returns the list of proficiencies associated with a Background instance"""
+        return self._profs
+
+
 ################ Generator Function and Other Related Randos ###################
 
 def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
-    raw_stats = None, race = None, char_class = None):
+    raw_stats = None, race = None, char_class = None, background = None):
     """Returns the id of a Character. If randomize is True, then my_dice generates
     stats and everything else. Otherwise, parameters are provided by the user.
     helpful_plz modifies randomize. If helpful_plz is true, the stats will be
@@ -279,6 +308,7 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     raw_stats: None or a list of int 3..18 of len 6
     race: object of type Race or None
     char_class: object of type ChClass or None
+    background: object of type Background or None
     """
     #checks preconditions
     assert is_valid_name(name)
@@ -290,6 +320,8 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     #EXCEPTION: custom race -> give hole
     assert char_class == None or isinstance(char_class, ChClass)
     #EXCEPTION: custom class -> give hole
+    assert background == None or isinstance(background, Background)
+    #EXCEPTION: custon background -> give hole
 
     #creates an key-only dictionary for putting final stats in
     stats = {'STR': 0, 'DEX': 0, 'CON': 0, 'INT': 0, 'WIS': 0, 'CHR': 0}
@@ -299,6 +331,9 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
 
     if randomize == True or char_class == None:
         char_class = random.sample(list(char_classes.values()), 1)[0]
+
+    if randomize == True or background == None:
+        background = random.sample(list(backgrounds.values()), 1)[0]
 
     if randomize == True or raw_stats == None:
         raw_stats = my_dice.roll_stats()
@@ -317,7 +352,40 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     for j in race_bonus:
         stats[j] += race_bonus[j]
 
-    return Character(name, stats, 1, race, char_class)
+    profs = makeprofs(background, char_class)
+
+    return Character(name, stats, 1, race, char_class, background, profs)
+
+
+def makeprofs(background, ch_class):
+    """Sets proficiencies; helper function for new_char
+
+    background: non None object of type Background
+    ch_class: non None object of type ChClass
+    """
+    assert background != None and isinstance(background, Background)
+    assert ch_class != None and isinstance(ch_class, ChClass)
+
+    bselect = []
+    cprofs = ch_class.getProfs()[:]
+    bprofs = background.getProfs()[:]
+
+    if bprofs != None and cprofs != None:
+        for i in background.getProfs():
+            bselect.append(i)
+
+        num = 2
+        if ch_class == rogue:
+            num += 2
+
+        for b in bprofs:
+            for c in cprofs:
+                if c == b:
+                    cprofs.remove(c)
+
+        cselect = random.sample(cprofs, num)
+
+        return bselect + cselect
 
 
 def load_char(filename, path = 'char_sheet/savedata'):
@@ -445,3 +513,13 @@ wizard = ChClass('Wizard', ['Arcana', 'History', 'Insight', 'Investigation',\
 
 char_classes = {'Cleric': cleric, 'Fighter': fighter, 'Rouge': rogue, 'Wizard': wizard}
 
+#creates 6 backgrounds
+acolyte = Background('Acolyte', ['Insight', 'Religion'])
+criminal = Background('Criminal', ['Deception', 'Stealth'])
+folk_hero = Background('Folk Hero', ['Animal Handling', 'Survival'])
+noble = Background('Noble', ['History', 'Persuasion'])
+sage = Background('Sage', ['Arcana', 'History'])
+soldier = Background('Soldier', ['Athletics', 'Intimidation'])
+
+backgrounds = {'Acolyte': acolyte, 'Criminal': criminal, 'Folk Hero': folk_hero,\
+    'Noble': noble, 'Sage': sage, 'Soldier': soldier}
