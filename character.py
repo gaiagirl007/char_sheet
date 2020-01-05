@@ -18,9 +18,19 @@ ALL_PROF = {
     'Performance': 'CHR', 'Persuasion': 'CHR', 'Religion': 'INT', 'Sleight of Hand': 'DEX',
     'Stealth': 'DEX', 'Survival': 'WIS'
     }
-
+#saves the proficiency bonus per level. ex: PROF[0] = proficiency bonus for lvl 1
 PROF = [2, 2, 2, 2, 3]
+#is the indexable bit of a stat dictionary
 STAT_POS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHR']
+#dictionary that saves the different attributes needed for a complete character
+GOOD_CHAR = ['name', 'stats', 'lvl', 'race', 'char_class', 'background', 'profs']
+TO_EN = {'name': 'name',
+    'stats': 'stats',
+    'lvl': 'level',
+    'race': 'race',
+    'char_class': 'class',
+    'background': 'background',
+    'profs': 'proficiencies'}
 
 ################################################################################
 
@@ -151,7 +161,6 @@ class Character(object):
 
     def update(self):
         """"""
-
 
 
 ### Update function maybe?
@@ -405,6 +414,42 @@ def load_char(filename, path = 'char_sheet/savedata'):
     return saved
 
 
+def scrub_data(char):
+    """Data scrubber helper function. Checks to see what data is missing from a
+    file that is to be loaded. ***for now, will randomize the missing data***
+
+    char: a dictionary of a saved character
+    """
+    assert type(char) == dict
+
+    for i in GOOD_CHAR:
+        if i not in char:
+            char[i] = generate_me(i)
+            print("Looks like we were missing some data! We set your character's " +\
+                TO_EN[i] + " to " + str(char[i]))
+
+
+def generate_me(char_asp):
+    """Generates a particular aspect of a character and returns said value
+    char_asp: str in GOOD_CHAR"""
+    assert type(char_asp) == str and char_asp in GOOD_CHAR
+
+    if char_asp == 'name':
+        return 'Adventurer Doe'
+    elif char_asp == 'stats':
+        return my_dice.roll_stats()
+    elif char_asp == 'lvl':
+        return 1
+    elif char_asp == 'race':
+        return random.sample(list(races.values()), 1)[0]
+    elif char_asp == 'char_class':
+        return random.sample(list(char_classes.values()), 1)[0]
+    elif char_asp == 'background':
+        return random.sample(list(backgrounds.values()), 1)[0]
+    elif char_asp == 'profs':
+        pass
+
+
 ################### Helper Functions for Preconditions #########################
 
 def is_valid_stats(stats, max = 18):
@@ -470,21 +515,6 @@ def is_valid_path(path):
         return True
     else:
         return False
-
-
-def everything_good(char):
-    """Data scrubber helper function holding place thingymabobber whatchamacallit.
-    Currently super monarchical and bossy, just assertions. EEEEDDDDDIIIIITTTTTT
-
-    char: instance of Character
-    """
-    assert isinstance(char, Character)
-
-    assert is_valid_name(char._name)
-    assert is_valid_stats(char._stats)
-    assert type(char._lvl) == int and char._lvl <= 20 and char._lvl > 0
-    assert str(char._race) in races
-    assert str(char._chclass) in char_classes
 
 
 ####################### End Helper Functions ###################################
