@@ -301,9 +301,9 @@ class Background(object):
 
 
 ################ Generator Function and Other Related Randos ###################
-
-def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
-    raw_stats = None, race = None, char_class = None, background = None):
+def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False, **kwargs):
+# def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
+#     raw_stats = None, race = None, char_class = None, background = None):
     """Returns the id of a Character. If randomize is True, then my_dice generates
     stats and everything else. Otherwise, parameters are provided by the user.
     helpful_plz modifies randomize. If helpful_plz is true, the stats will be
@@ -323,7 +323,7 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     assert is_valid_name(name)
     assert type(randomize) == bool
     assert type(helpful_plz) == bool
-    assert raw_stats == None or is_valid_stats(raw_stats)
+    assert kwargs.get(raw_stats) == None or is_valid_stats(raw_stats)
 
     assert race == None or isinstance(race, Race)
     #EXCEPTION: custom race -> give hole
@@ -335,22 +335,25 @@ def new_char(name = "Adventurer Doe", randomize = True, helpful_plz = False,\
     #creates an key-only dictionary for putting final stats in
     stats = {'STR': 0, 'DEX': 0, 'CON': 0, 'INT': 0, 'WIS': 0, 'CHR': 0}
 
-    if randomize == True or race == None:
-        race = random.sample(list(races.values()), 1)[0]
+    if randomize == True:
+        stats = generate_me(GOOD_CHAR[1:])
 
-    if randomize == True or char_class == None:
-        char_class = random.sample(list(char_classes.values()), 1)[0]
-
-    if randomize == True or background == None:
-        background = random.sample(list(backgrounds.values()), 1)[0]
-
-    if randomize == True or raw_stats == None:
-        raw_stats = my_dice.roll_stats()
-
-        if helpful_plz == True:
-            help = max(raw_stats)
-            raw_stats.remove(help)
-            raw_stats.insert(STAT_POS.index(char_class.getStat()), help)
+    # if randomize == True or race == None:
+    #     race = random.sample(list(races.values()), 1)[0]
+    #
+    # if randomize == True or char_class == None:
+    #     char_class = random.sample(list(char_classes.values()), 1)[0]
+    #
+    # if randomize == True or background == None:
+    #     background = random.sample(list(backgrounds.values()), 1)[0]
+    #
+    # if randomize == True or raw_stats == None:
+    #     raw_stats = my_dice.roll_stats()
+    #
+    #     if helpful_plz == True:
+    #         help = max(raw_stats)
+    #         raw_stats.remove(help)
+    #         raw_stats.insert(STAT_POS.index(char_class.getStat()), help)
 
     #puts raw_stats into the dictionary
     for i in range(len(stats)):
@@ -431,23 +434,27 @@ def scrub_data(char):
 
 def generate_me(char_asp):
     """Generates a particular aspect of a character and returns said value
-    char_asp: str in GOOD_CHAR"""
-    assert type(char_asp) == str and char_asp in GOOD_CHAR
+    char_asp: list of str in GOOD_CHAR"""
+    assert is_attr_list(char_asp)
 
-    if char_asp == 'name':
-        return 'Adventurer Doe'
-    elif char_asp == 'stats':
-        return my_dice.roll_stats()
-    elif char_asp == 'lvl':
-        return 1
-    elif char_asp == 'race':
-        return random.sample(list(races.values()), 1)[0]
-    elif char_asp == 'char_class':
-        return random.sample(list(char_classes.values()), 1)[0]
-    elif char_asp == 'background':
-        return random.sample(list(backgrounds.values()), 1)[0]
-    elif char_asp == 'profs':
-        pass
+    blankfill = {}
+
+    if 'name' in char_asp:
+        blankfill['name'] = 'Adventurer Doe'
+    if 'stats' in char_asp:
+        blankfill['stats'] = my_dice.roll_stats()
+    if 'lvl' in char_asp:
+        blankfill['lvl'] = 1
+    if 'race' in char_asp:
+        blankfill['race'] = random.sample(list(races.values()), 1)[0]
+    if 'char_class' in char_asp:
+        blankfill['char_class'] = random.sample(list(char_classes.values()), 1)[0]
+    if 'background' in char_asp:
+        blankfill['background'] = random.sample(list(backgrounds.values()), 1)[0]
+    if 'profs' in char_asp:
+        break
+
+    return blankfill
 
 
 ################### Helper Functions for Preconditions #########################
@@ -515,6 +522,19 @@ def is_valid_path(path):
         return True
     else:
         return False
+
+
+def is_attr_list(value):
+    """Checks to see if a value is a list of str in GOOD_CHAR. If so, returns True, else
+    returns False."""
+    if type(value) != list:
+        return False
+
+    for i in value:
+        if type(i) != str or i not in GOOD_CHAR:
+            return False
+
+    return True
 
 
 ####################### End Helper Functions ###################################
